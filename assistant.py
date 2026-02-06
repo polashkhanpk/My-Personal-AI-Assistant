@@ -4,6 +4,9 @@ import os
 import webbrowser
 import datetime
 import pyautogui
+import time
+
+# ------------- VOICE SETUP -------------
 
 engine = pyttsx3.init()
 voices = engine.getProperty('voices')
@@ -12,24 +15,32 @@ engine.setProperty('voice', voices[1].id)
 engine.setProperty('rate', 185)
 engine.setProperty('volume', 1.0)
 
+# Paths
 DESKTOP_PATH = r"C:\Users\shiha\OneDrive\Desktop"
 DOWNLOADS_PATH = r"D:\Downloads"
 DOCUMENTS_PATH = r"C:\Users\shiha\Documents"
 PICTURES_PATH = r"C:\Users\shiha\Pictures"
 
+WAKE_WORD = "friday"
+
+# ------------- FUNCTIONS -------------
+
 def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-def listen():
+def listen(timeout=None):
     r = sr.Recognizer()
     r.pause_threshold = 0.8
     r.dynamic_energy_threshold = True
 
     with sr.Microphone() as source:
-        print("Listening...")
-        r.adjust_for_ambient_noise(source, duration=0.8)
-        audio = r.listen(source)
+        if timeout:
+            audio = r.listen(source, timeout=timeout, phrase_time_limit=5)
+        else:
+            print("Listening...")
+            r.adjust_for_ambient_noise(source, duration=0.8)
+            audio = r.listen(source)
 
     try:
         text = r.recognize_google(audio)
@@ -39,11 +50,9 @@ def listen():
     except:
         return ""
 
-# COMMAND
+# ------------- COMMAND HANDLER -------------
 
 def run_command(command):
-
-    # --- OPEN APPS ---
 
     if "chrome" in command:
         speak("Opening Chrome")
@@ -61,10 +70,6 @@ def run_command(command):
         speak("Opening Gmail")
         webbrowser.open("https://mail.google.com")
 
-    elif "facebook" in command:
-        speak("Opening Facebook")
-        webbrowser.open("https://facebook.com")
-
     elif "notepad" in command:
         speak("Opening Notepad")
         os.system("start notepad")
@@ -74,42 +79,19 @@ def run_command(command):
         os.system("start calc")
 
     elif "file explorer" in command:
-        speak("Opening File Explorer")
         os.system("explorer")
 
-    # --- FOLDERS ---
-
     elif "desktop" in command:
-        speak("Opening desktop")
         os.startfile(DESKTOP_PATH)
 
     elif "download" in command:
-        speak("Opening downloads")
         os.startfile(DOWNLOADS_PATH)
 
     elif "documents" in command:
-        speak("Opening documents")
         os.startfile(DOCUMENTS_PATH)
 
     elif "pictures" in command:
-        speak("Opening pictures")
         os.startfile(PICTURES_PATH)
-
-    # --- CREATE FOLDER ---
-
-    elif "create folder" in command:
-        folder_name = "New Folder"
-        path = os.path.join(DESKTOP_PATH, folder_name)
-
-        count = 1
-        while os.path.exists(path):
-            path = os.path.join(DESKTOP_PATH, f"New Folder {count}")
-            count += 1
-
-        os.mkdir(path)
-        speak("Folder created on desktop")
-
-    # --- SCREENSHOT ---
 
     elif "screenshot" in command:
         speak("Taking screenshot")
@@ -122,41 +104,17 @@ def run_command(command):
 
         speak("Screenshot saved")
 
-    # --- VOLUME ---
-
     elif "volume up" in command:
         pyautogui.press("volumeup")
-        speak("Volume increased")
 
     elif "volume down" in command:
         pyautogui.press("volumedown")
-        speak("Volume decreased")
 
     elif "mute" in command:
         pyautogui.press("volumemute")
-        speak("Muted")
-
-    # --- MEDIA ---
-
-    elif "play" in command or "pause" in command:
-        pyautogui.press("playpause")
-
-    elif "next" in command:
-        pyautogui.press("nexttrack")
-
-    elif "previous" in command:
-        pyautogui.press("prevtrack")
-
-    # --- WINDOWS CONTROL ---
 
     elif "close window" in command:
         pyautogui.hotkey("alt", "f4")
-
-    elif "minimize window" in command:
-        pyautogui.hotkey("win", "down")
-
-    elif "maximize window" in command:
-        pyautogui.hotkey("win", "up")
 
     elif "show desktop" in command:
         pyautogui.hotkey("win", "d")
@@ -164,13 +122,8 @@ def run_command(command):
     elif "task manager" in command:
         pyautogui.hotkey("ctrl", "shift", "esc")
 
-    # --- SYSTEM ---
-
     elif "lock computer" in command:
         os.system("rundll32.exe user32.dll,LockWorkStation")
-
-    elif "sleep computer" in command:
-        os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
 
     elif "shutdown" in command:
         speak("Shutting down computer")
@@ -180,25 +133,48 @@ def run_command(command):
         speak("Restarting computer")
         os.system("shutdown /r /t 5")
 
-    # --- TIME ---
-
-    elif "time" in command:
-        now = datetime.datetime.now().strftime("%I:%M %p")
-        speak("The time is " + now)
-
-    # --- EXIT ---
-
     elif "exit" in command or "quit" in command:
         speak("Goodbye Shihab")
         exit()
 
+        # -------- AUTOMATION MODES --------
+
+    elif "work mode" in command:
+        speak("Starting work mode")
+        os.system("start chrome")
+        os.system("explorer")
+        os.startfile(DOCUMENTS_PATH)
+
+    elif "study mode" in command:
+        speak("Starting study mode")
+        webbrowser.open("https://youtube.com")
+        os.system("start notepad")
+
+    elif "fun mode" in command:
+        speak("Starting fun mode")
+        webbrowser.open("https://youtube.com")
+        os.system("start chrome")
+
+
     else:
         speak("I did not understand")
 
+# ------------- MAIN LOOP -------------
 
-speak("Assistant started")
+speak("Say Friday to wake me.")
 
 while True:
-    command = listen()
-    if command:
-        run_command(command)
+
+    # Always listen for wake word
+    heard = listen()
+
+    if WAKE_WORD in heard:
+        speak("Yes Shihab, I'm listening")
+
+        # Listen for actual command
+        command = listen()
+
+        if command:
+            run_command(command)
+
+        time.sleep(1)   # small pause before sleeping again
